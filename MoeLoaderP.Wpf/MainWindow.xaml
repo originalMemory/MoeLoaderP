@@ -12,7 +12,6 @@
     mc:Ignorable="d" 
     d:DesignWidth="1045" 
     d:DesignHeight="651.667"
-    WindowStartupLocation="CenterScreen"
     >
     <Window.Resources>
         <Storyboard x:Key="BeginSearchSb">

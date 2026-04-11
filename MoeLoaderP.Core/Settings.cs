@@ -79,6 +79,28 @@ public class Settings : BindingObject
         set => SetField(ref _mainWindowHeight, value, nameof(MainWindowHeight));
     }
 
+    /// <summary>
+    ///     主窗口上次关闭时的左坐标（DIP）；未保存过则为 null，启动时居中。
+    /// </summary>
+    private double? _mainWindowLeft;
+
+    public double? MainWindowLeft
+    {
+        get => _mainWindowLeft;
+        set => SetField(ref _mainWindowLeft, value, nameof(MainWindowLeft));
+    }
+
+    /// <summary>
+    ///     主窗口上次关闭时的顶坐标（DIP）；未保存过则为 null。
+    /// </summary>
+    private double? _mainWindowTop;
+
+    public double? MainWindowTop
+    {
+        get => _mainWindowTop;
+        set => SetField(ref _mainWindowTop, value, nameof(MainWindowTop));
+    }
+
     private bool _isShowBgImage = true;
 
     public bool IsShowBgImage

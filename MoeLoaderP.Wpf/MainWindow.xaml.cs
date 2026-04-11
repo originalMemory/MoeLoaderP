@@ -72,7 +72,63 @@ public partial class MainWindow
         // ali
         this.SetWindowFluent(settings );
 
+        ApplySavedMainWindowPlacement();
+
         Settings.SiteManager.PropertyChanged += SiteManagerOnPropertyChanged;
+    }
+
+    /// <summary>
+    ///     若有上次保存的坐标则恢复（并夹紧到虚拟屏内）；否则居中。
+    /// </summary>
+    private void ApplySavedMainWindowPlacement()
+    {
+        if (Settings.MainWindowLeft is not { } savedLeft || Settings.MainWindowTop is not { } savedTop)
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            return;
+        }
+
+        if (double.IsNaN(savedLeft) || double.IsNaN(savedTop)
+            || double.IsInfinity(savedLeft) || double.IsInfinity(savedTop))
+        {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            return;
+        }
+
+        var vsLeft = SystemParameters.VirtualScreenLeft;
+        var vsTop = SystemParameters.VirtualScreenTop;
+        var vsW = SystemParameters.VirtualScreenWidth;
+        var vsH = SystemParameters.VirtualScreenHeight;
+        var w = ActualWidth > 0 ? ActualWidth : Width;
+        var h = ActualHeight > 0 ? ActualHeight : Height;
+        if (w <= 0 || double.IsNaN(w)) w = Settings.MainWindowWidth > 0 ? Settings.MainWindowWidth : MinWidth;
+        if (h <= 0 || double.IsNaN(h)) h = Settings.MainWindowHeight > 0 ? Settings.MainWindowHeight : MinHeight;
+
+        const double margin = 40;
+        var left = Math.Min(Math.Max(savedLeft, vsLeft - w + margin), vsLeft + vsW - margin);
+        var top = Math.Min(Math.Max(savedTop, vsTop - h + margin), vsTop + vsH - margin);
+
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = left;
+        Top = top;
+    }
+
+    /// <summary>
+    ///     将当前窗口位置写入设置（最大化时用还原前外接矩形）。
+    /// </summary>
+    private void PersistMainWindowPlacement()
+    {
+        if (WindowState == WindowState.Maximized)
+        {
+            var rb = RestoreBounds;
+            Settings.MainWindowLeft = rb.Left;
+            Settings.MainWindowTop = rb.Top;
+        }
+        else
+        {
+            Settings.MainWindowLeft = Left;
+            Settings.MainWindowTop = Top;
+        }
     }
 
     private void SiteManagerOnPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -145,6 +201,7 @@ public partial class MainWindow
 
     private void OnClosing(object sender, CancelEventArgs e)
     {
+        PersistMainWindowPlacement();
         Settings.Save(App.SettingJsonFilePath);
         var items = MoeDownloaderControl.Downloader.DownloadItems;
         if (!UnfinishedDownloadMlpub.HasUnfinishedWork(items)) return;
