@@ -1,0 +1,43 @@
+## Build
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.log
+
+## Visual Studio / VS Code / Rider
+.vs/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.idea/
+
+## NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+## Test / coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.coverage
+*.coveragexml
+
+## Others
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+publish/
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Secrets (keep local only)
+*.pfx
+*.snk

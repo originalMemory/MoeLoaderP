@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using MoeLoaderP.Core;
-using MoeLoaderP.Helper;
 using MoeLoaderP.Wpf.ControlParts;
 
 namespace MoeLoaderP.Wpf;

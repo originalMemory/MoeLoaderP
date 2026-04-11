@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MoeLoaderP (Debug)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/MoeLoaderP.Wpf/bin/Debug/net9.0-windows10.0.17763.0/MoeLoaderP.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/MoeLoaderP.Wpf",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    {
+      "name": "MoeLoaderP (Release)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-release",
+      "program": "${workspaceFolder}/MoeLoaderP.Wpf/bin/Release/net9.0-windows10.0.17763.0/MoeLoaderP.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/MoeLoaderP.Wpf",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    }
+  ]
+}
