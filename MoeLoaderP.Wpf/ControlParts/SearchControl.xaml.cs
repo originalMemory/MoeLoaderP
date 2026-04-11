@@ -232,11 +232,13 @@ public partial class SearchControl
 
         Settings.CurrentSession = new SearchSession(para);
         Settings.CurrentSession.SaveKeywords();
-        wm.SiteTextBlock.Text = Settings.CurrentSession.GetCurrentSearchStateText();
         wm.MoeExplorer.DownloadTypeComboBox.ItemsSource = Settings.CurrentSession.ResultDownloadTypes;
         wm.MoeExplorer.DownloadTypeComboBox.SelectedIndex = 0;
         var vp = await Settings.CurrentSession.SearchNextVisualPage();
-        if (vp is not null) _ = wm.MoeExplorer.ShowVisualPage(vp);
+        if (vp is not null)
+            await wm.MoeExplorer.ShowVisualPage(vp);
+        else
+            wm.SiteTextBlock.Text = Settings.CurrentSession.GetSiteStatusLineWithPageStats(null);
         SetSearchVisual(false);
             
     }

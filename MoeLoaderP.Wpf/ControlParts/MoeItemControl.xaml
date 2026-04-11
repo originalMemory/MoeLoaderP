@@ -225,8 +225,10 @@
                 </Border.Effect>
             </Border>
         </Grid>
-        <CheckBox x:Name="ImageCheckBox" Template="{DynamicResource ImageItemCheckBoxControlTemplate}" 
-                  Background="{DynamicResource MoeImageBorderBrush}">
+        <Grid>
+            <!-- 已读环必须在 CheckBox 之上绘制，否则会整片被模板内 BgBorder 盖住；IsHitTestVisible 保证仍能点到勾选框 -->
+            <CheckBox x:Name="ImageCheckBox" Template="{DynamicResource ImageItemCheckBoxControlTemplate}"
+                      Background="{DynamicResource MoeImageBorderBrush}">
             <Grid x:Name="ImageGrid">
                 <Border x:Name="ImageBgBorder" Opacity="0"  ClipToBounds="True">
                     <Border.Effect>
@@ -418,6 +420,10 @@
                 </Grid>
             </Grid>
         </CheckBox>
+            <Border x:Name="ViewedRingBorder" Panel.ZIndex="1" CornerRadius="9" BorderThickness="2"
+                    BorderBrush="{DynamicResource MoeViewedImageBorderBrush}" Background="{x:Null}"
+                    Visibility="Collapsed" Margin="0" IsHitTestVisible="False"/>
+        </Grid>
         <Border x:Name="OperationBorder" VerticalAlignment="Center" HorizontalAlignment="Right" CornerRadius="6" Margin="3" Opacity="1">
             <StackPanel>
                 <Button x:Name="RefreshButton" 

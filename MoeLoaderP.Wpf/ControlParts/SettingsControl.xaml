@@ -68,6 +68,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="30"/>
                             <RowDefinition Height="30"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -82,6 +83,9 @@
                                    VerticalAlignment="Center" Grid.Row="1"
                                    Grid.Column="0" Foreground="Black"/>
                         <controlParts:VariableCountControl x:Name="HistoryMaxCountBox" Grid.Column="1" MinCount="5" MaxCount="30" NumCount="{Binding HistoryKeywordsMaxCount, Mode=TwoWay}" Grid.Row="1" Width="150" Height="26"/>
+                        <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Margin="0,8,0,0" Foreground="Black"
+                                  Content="当前页不显示已浏览图片（仅缩略图展示，不影响翻页）"
+                                  IsChecked="{Binding MaskViewedInSearch, Mode=TwoWay}"/>
                     </Grid>
                     <Button x:Name="ClearHistoryButton" 
                             Content="{DynamicResource TextSettingsClearHistory}" 

@@ -617,6 +617,7 @@
         <GradientStop Color="WhiteSmoke" Offset="0"/>
         <GradientStop Color="White" Offset="0.501"/>
     </LinearGradientBrush>
+    <SolidColorBrush x:Key="MoeViewedImageBorderBrush" Color="#FFE993AA"/>
     <SolidColorBrush x:Key="DisableTextForegroundBrush" Color="#FFA0A0A0"/>
     <ControlTemplate x:Key="MoeSingleLineTextBoxControlTemplate" TargetType="{x:Type TextBox}">
         <ControlTemplate.Resources>

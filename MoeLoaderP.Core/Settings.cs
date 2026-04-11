@@ -155,6 +155,17 @@ public class Settings : BindingObject
         set => SetField(ref _isClearImagesWhenSearchNextPage, value, nameof(IsClearImagesWhenSearchNextPage));
     }
 
+    /// <summary>
+    ///     仅影响当前页缩略图展示：为 true 时不向面板添加已读项（不改变 FilterCount / 翻页逻辑）。
+    /// </summary>
+    private bool _maskViewedInSearch;
+
+    public bool MaskViewedInSearch
+    {
+        get => _maskViewedInSearch;
+        set => SetField(ref _maskViewedInSearch, value, nameof(MaskViewedInSearch));
+    }
+
     #endregion
 
     #region Download Settings
@@ -313,6 +324,8 @@ public class Settings : BindingObject
 
     public void Save(string jsonPath)
     {
+        foreach (var kv in AllSitesSettings) kv.Value.PersistViewedRuntimeIfDirty();
+
         // 保存 json
         var json = JsonConvert.SerializeObject(this);
         File.WriteAllText(jsonPath, json);
@@ -381,6 +394,53 @@ public class IndividualSiteSettings : BindingObject
     public AutoHintItems History { get; set; } = new();
 
     public Settings.ProxyModeEnum SiteProxy { get; set; } = Settings.ProxyModeEnum.Default;
+
+    private string _viewedIdsEncoded;
+
+    /// <summary>
+    ///     已浏览 ID 游程编码串（按站点一份）。
+    /// </summary>
+    public string ViewedIdsEncoded
+    {
+        get => _viewedIdsEncoded;
+        set
+        {
+            if (SetField(ref _viewedIdsEncoded, value, nameof(ViewedIdsEncoded)))
+                _viewedRuntimeLoaded = false;
+        }
+    }
+
+    [JsonIgnore] private ViewedId _viewedRuntime;
+
+    [JsonIgnore] private bool _viewedRuntimeLoaded;
+
+    /// <summary>
+    ///     获取或创建内存中的已读集合（懒加载自 <see cref="ViewedIdsEncoded"/>）。
+    /// </summary>
+    public ViewedId EnsureViewedRuntime()
+    {
+        if (!_viewedRuntimeLoaded)
+        {
+            _viewedRuntime = new ViewedId();
+            if (!string.IsNullOrWhiteSpace(_viewedIdsEncoded))
+                _viewedRuntime.AddViewedRange(_viewedIdsEncoded);
+            _viewedRuntimeLoaded = true;
+        }
+
+        return _viewedRuntime;
+    }
+
+    /// <summary>
+    ///     将内存已读写回 <see cref="ViewedIdsEncoded"/>，供 Save 序列化。
+    /// </summary>
+    public void PersistViewedRuntimeIfDirty()
+    {
+        if (!_viewedRuntimeLoaded || _viewedRuntime == null) return;
+        var s = _viewedRuntime.ToString();
+        if (s == _viewedIdsEncoded) return;
+        _viewedIdsEncoded = s;
+        OnPropertyChanged(nameof(ViewedIdsEncoded));
+    }
 
     public string GetSetting(string key)
     {

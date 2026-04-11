@@ -233,4 +233,31 @@ public class SearchSession : BindingObject
         if (!para.Keyword.IsEmpty()) sb += $"→\"{para.Keyword}\"";
         return sb;
     }
+
+    /// <summary>
+    ///     统计某一虚拟搜索页内（所有 RealPages）顶层条目总数与其中已读数。
+    /// </summary>
+    public static (int Total, int Viewed) CountItemsOnVisualPage(SearchedVisualPage page)
+    {
+        if (page?.RealPages == null) return (0, 0);
+        var total = 0;
+        var viewed = 0;
+        foreach (var rp in page.RealPages)
+        {
+            foreach (MoeItem item in rp)
+            {
+                total++;
+                if (item.IsViewed) viewed++;
+            }
+        }
+
+        return (total, viewed);
+    }
+
+    public string GetSiteStatusLineWithPageStats(SearchedVisualPage page)
+    {
+        var baseText = GetCurrentSearchStateText();
+        var (n, m) = CountItemsOnVisualPage(page);
+        return $"{baseText}　本页共 {n} 张，已读 {m} 张";
+    }
 }

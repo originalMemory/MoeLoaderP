@@ -88,6 +88,13 @@ public partial class MoeItemControl : IDisposable
         {
             SetMultiPicVisual();
         }
+
+        UpdateViewedRingVisibility();
+    }
+
+    private void UpdateViewedRingVisibility()
+    {
+        ViewedRingBorder.Visibility = MoeItem.IsViewed ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public void SetMultiPicVisual()
@@ -102,6 +109,10 @@ public partial class MoeItemControl : IDisposable
         {
             FavTextBlock.Foreground = MoeItem.IsFav ? Brushes.DeepPink : Brushes.White;
         }
+
+        if (e.PropertyName == nameof(MoeItem.IsViewed))
+            UpdateViewedRingVisibility();
+
         if(e.PropertyName ==  nameof(MoeItem.ChildrenItemsCount))
         {
             if (MoeItem.ChildrenItemsCount > 1)
@@ -254,6 +265,8 @@ public partial class MoeItemControl : IDisposable
 
     public void Dispose()
     {
+        MoeItem.PropertyChanged -= MoeItemOnPropertyChanged;
+        MoeItem.Site.PropertyChanged -= SiteOnPropertyChanged;
         GC.SuppressFinalize(this);
     }
         

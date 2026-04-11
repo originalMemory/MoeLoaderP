@@ -92,6 +92,12 @@ public partial class MoeExplorerControl
         {
             InitSession(Settings.CurrentSession);
             ResetVisualPageDisplay();
+            RefreshSiteStatusLine(Settings.CurrentSession?.VisualPages.LastOrDefault());
+        }
+        else if (e.PropertyName == nameof(Settings.MaskViewedInSearch))
+        {
+            var cur = Settings.CurrentSession?.VisualPages.FirstOrDefault(vp => vp.IsCurrentPage);
+            if (cur != null) _ = ShowVisualPage(cur);
         }
     }
 
@@ -99,7 +105,7 @@ public partial class MoeExplorerControl
     {
         PagingStackPanel.Children.Clear();
         Settings.CurrentSession = session;
-        session.VisualPages.AddEvent += AddPageButton;
+        if (session != null) session.VisualPages.AddEvent += AddPageButton;
     }
     
     public string GetCountString(int? i)
@@ -282,6 +288,7 @@ public partial class MoeExplorerControl
                 void DisplayImg()
                 {
                     if(img.IsLocalFilter) return;
+                    if (Settings.MaskViewedInSearch && img.IsViewed) return;
                     var ctrl = new MoeItemControl(Settings, img);
                     ctrl.DownloadButton.Click += delegate { ImageItemDownloadButtonClicked?.Invoke(ctrl.MoeItem, ctrl.PreviewImage.Source); };
                     ctrl.PreviewButton.Click += delegate { MoeItemPreviewButtonClicked?.Invoke(ctrl.MoeItem, ctrl.PreviewImage.Source); };
@@ -304,6 +311,13 @@ public partial class MoeExplorerControl
         }
             
         page.LoadEnd();
+        RefreshSiteStatusLine(page);
+    }
+
+    private void RefreshSiteStatusLine(SearchedVisualPage page)
+    {
+        if (Application.Current.MainWindow is not MainWindow mw || Settings.CurrentSession == null) return;
+        mw.SiteTextBlock.Text = Settings.CurrentSession.GetSiteStatusLineWithPageStats(page);
     }
     
 
@@ -332,21 +346,21 @@ public partial class MoeExplorerControl
         var vp = await Settings.CurrentSession.SearchNextVisualPage();
         var offset = PagingStackPanel.Children[^1].TranslatePoint(new Point(0, 0), PagingStackPanel).X;
         PagingScrollViewer.ScrollToHorizontalOffset(offset);
-        _ = ShowVisualPage(vp);
+        if (vp != null) await ShowVisualPage(vp);
     }
 
     public void AddPageButton(SearchedVisualPage page)
     {
         var button = new PagingButtonControl();
         button.Init(page, 64, page.FirstRealPageIndex);
-        button.PageButton.Click += delegate
+        button.PageButton.Click += async (_, _) =>
         {
             foreach (PagingButtonControl c in PagingStackPanel.Children)
             {
                 c.VisualPage.IsCurrentPage = false;
             }
             if (button.VisualPage.VisualIndex == CurrentDisplayIndex) return;
-            _ = ShowVisualPage(button.VisualPage);
+            await ShowVisualPage(button.VisualPage);
         };
         button.MouseEnter += delegate
         {

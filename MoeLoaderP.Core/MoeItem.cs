@@ -227,6 +227,17 @@ public class MoeItem : BindingObject
 
     public bool IsLocalFilter { get; set; }
 
+    private bool _isViewed;
+
+    /// <summary>
+    ///     是否在持久化已读集合中（历史上已读过；与 Delta Img.IsViewed 语义一致）。
+    /// </summary>
+    public bool IsViewed
+    {
+        get => _isViewed;
+        set => SetField(ref _isViewed, value, nameof(IsViewed));
+    }
+
     /// <summary>
     ///     是否显示注释
     /// </summary>
@@ -751,6 +762,7 @@ public class MoeItems : ObservableCollection<MoeItem>
 
     public new void Add(MoeItem item)
     {
+        ViewedItemHelper.ApplyViewedState(item);
         item.LocalFilter();
         if (item.IsLocalFilter) FilterCount++;
         base.Add(item);
