@@ -30,6 +30,9 @@ public partial class DownloaderControl
         StopButton.Click += StopButtonOnClick;
         SelectAllButton.Click += SelectAllButtonOnClick;
         RetryButton.Click += RetryButtonOnClick;
+        ExportUnfinishedButton.Click += ExportUnfinishedButtonOnClick;
+        DownloadItemsListBox.PreviewDragOver += DownloadItemsListBoxOnPreviewDragOver;
+        DownloadItemsListBox.Drop += DownloadItemsListBoxOnDrop;
         KeyDown += OnKeyDown;
 
         Timer.Interval = TimeSpan.FromSeconds(1);
@@ -76,6 +79,56 @@ public partial class DownloaderControl
         ContextMenuPopup.IsOpen = false;
     }
 
+    private void ExportUnfinishedButtonOnClick(object sender, RoutedEventArgs e)
+    {
+        var wnd = Window.GetWindow(this);
+        UnfinishedDownloadExportUi.TryExportViaSaveDialog(Downloader.DownloadItems, wnd, out _);
+        ContextMenuPopup.IsOpen = false;
+    }
+
+    private void DownloadItemsListBoxOnPreviewDragOver(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+        if (paths is not { Length: > 0 })
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        if (paths.Any(p => !p.EndsWith(UnfinishedDownloadMlpub.FileExtension, StringComparison.OrdinalIgnoreCase)))
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        e.Effects = DragDropEffects.Copy;
+        e.Handled = true;
+    }
+
+    private void DownloadItemsListBoxOnDrop(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+        var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+        if (paths is null || paths.Length == 0) return;
+        var mlpubs = paths.Where(p => p.EndsWith(UnfinishedDownloadMlpub.FileExtension, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (mlpubs.Length == 0) return;
+        var (added, errors) = UnfinishedDownloadMlpub.ImportFromMlpubFiles(mlpubs, Downloader, Settings);
+        var wnd = Window.GetWindow(this);
+        var msg = added > 0 ? $"已加入 {added} 个下载任务。" : "未能加入任何任务。";
+        if (errors.Count > 0) msg += "\n\n" + string.Join("\n", errors.Take(8));
+        MessageBox.Show(wnd, msg, App.DisplayName, MessageBoxButton.OK,
+            added > 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+    }
 
     private void SelectAllButtonOnClick(object sender, RoutedEventArgs e)
     {

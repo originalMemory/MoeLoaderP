@@ -135,4 +135,14 @@ public class SiteManager : BindingObject
         SetDefaultSiteList();
         SetCustomSitesFormJson(Settings.CustomSitesDir);
     }
+
+    /// <summary>
+    ///     按站点短名查找（忽略大小写）；未找到返回 null。
+    /// </summary>
+    public MoeSite GetSiteByShortName(string shortName)
+    {
+        if (string.IsNullOrWhiteSpace(shortName)) return null;
+        return Sites.FirstOrDefault(s =>
+            string.Equals(s.ShortName, shortName.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
 }

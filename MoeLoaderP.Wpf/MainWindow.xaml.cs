@@ -146,9 +146,24 @@ public partial class MainWindow
     private void OnClosing(object sender, CancelEventArgs e)
     {
         Settings.Save(App.SettingJsonFilePath);
-        if (!MoeDownloaderControl.Downloader.IsDownloading) return;
-        var result = MessageBox.Show(this, "正在下载图片，确定要关闭吗？",
-            App.DisplayName, MessageBoxButton.OKCancel, MessageBoxImage.Question);
-        if (result == MessageBoxResult.Cancel) e.Cancel = true;
+        var items = MoeDownloaderControl.Downloader.DownloadItems;
+        if (!UnfinishedDownloadMlpub.HasUnfinishedWork(items)) return;
+
+        var body = TryFindResource("TextMainCloseUnfinishedWork") as string
+                   ?? "下载队列中仍有未完成的任务（含排队、下载中、失败、停止或取消）。\n\n"
+                      + "是：导出未成功任务到 .mlpub 后关闭\n"
+                      + "否：直接关闭（不导出）\n"
+                      + "取消：不关闭";
+        var result = MessageBox.Show(this, body, App.DisplayName, MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+        if (result == MessageBoxResult.Cancel)
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        if (result == MessageBoxResult.No) return;
+
+        if (!UnfinishedDownloadExportUi.TryExportViaSaveDialog(items, this, out _)) e.Cancel = true;
     }
 }

@@ -53,4 +53,5 @@
     <String x:Key="TextContextMenuRetryFailed">重试失败</String>
     <String x:Key="TextContextMenuDownloadSelected">下载</String>
     <String x:Key="TextDownloaderContextExportUnfinished">导出未成功任务</String>
+    <String x:Key="TextMainCloseUnfinishedWork">下载队列中仍有未完成的任务（含排队、下载中、失败、停止或取消）。&#x0a;&#x0a;是：导出未成功任务到 .mlpub 后关闭&#x0a;否：直接关闭（不导出）&#x0a;取消：不关闭</String>
 </m:ResourceDictionary>

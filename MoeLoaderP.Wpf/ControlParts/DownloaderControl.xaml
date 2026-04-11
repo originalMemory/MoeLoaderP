@@ -19,6 +19,7 @@
             x:Name="DownloadItemsListBox"
             Background="{x:Null}"
             BorderBrush="{x:Null}"
+            AllowDrop="True"
             ItemsSource="{Binding DownloadItems}"
             SelectionMode="Extended" 
             ItemContainerStyle="{DynamicResource MoeDownloaderListBoxItemStyle}" 
@@ -111,6 +112,16 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock TextWrapping="Wrap" Text="&#xF0E2;" FontFamily="{DynamicResource FontAwesomeSolid}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 <TextBlock TextWrapping="Wrap" Text="{DynamicResource TextDownloaderContextRetry}" Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                            </Grid>
+                        </Button>
+                        <Button x:Name="ExportUnfinishedButton" Template="{DynamicResource MoeContextMenuButtonControlTemplate}">
+                            <Grid Height="22">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="22"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock TextWrapping="Wrap" Text="&#xF56E;" FontFamily="{DynamicResource FontAwesomeSolid}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBlock TextWrapping="Wrap" Text="{DynamicResource TextDownloaderContextExportUnfinished}" Grid.Column="1" VerticalAlignment="Center" Margin="4,0,0,0"/>
                             </Grid>
                         </Button>
                         <Button x:Name="StartAllButton" Template="{DynamicResource MoeContextMenuButtonControlTemplate}">

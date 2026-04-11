@@ -1,108 +1,110 @@
-# viewed-image-tracking Specification
+# viewed-image-tracking 规格
 
-## Purpose
-TBD - created by archiving change track-viewed-images. Update Purpose after archive.
-## Requirements
-### Requirement: Per-site viewed ID storage
+## 目的
 
-The system SHALL maintain, for each image site, a persistent set of viewed image numeric IDs using the same compressed encoding model as the reference `ViewedID` implementation (range runs, `IsViewed`, session `AddViewingId` merged into stored ranges on save). The system SHALL NOT import or migrate viewed data from MoeLoader-Delta or any external legacy config.
+按站点持久化「已浏览」图片 ID、在结果集进入列表时打标、可选的「隐藏已读」仅影响当前缩略图条展示、已读态缩略图边框与状态栏本页统计等。本规格由变更 `track-viewed-images` 归档后同步入主库；与 MoeLoader-Delta 或外部旧配置**不**做已读数据导入或迁移。
 
-#### Scenario: Persist after session
+## 需求
 
-- **WHEN** the user has browsed one or more images for a site and the application saves settings or exits in a normal shutdown path
-- **THEN** the viewed ID data for that site SHALL be written to MoeLoaderP persistent storage so that a subsequent launch can restore `IsViewed` for those IDs
+### 需求：按站点存储已浏览 ID
 
-#### Scenario: Load on startup
+系统必须为每个图片站点维护一份持久化的、已浏览图片数值 ID 集合，编码与压缩模型与参考实现 `ViewedID` 一致（区间游程、`IsViewed`、会话内 `AddViewingId` 在保存时合并进已存区间等）。系统**不得**从 MoeLoader-Delta 或任何外部旧配置导入或迁移已读数据。
 
-- **WHEN** the application starts and stored viewed ID data exists for a site short name
-- **THEN** the in-memory viewed ID structure for that site SHALL be populated from storage without losing valid compressed ranges
+#### 场景：会话后持久化
 
-### Requirement: Mark items when items enter the result collection
+- **当** 用户在某站点已浏览一张或多张图，且应用保存设置或沿正常关机路径退出  
+- **则** 该站点的已浏览 ID 数据必须写入 MoeLoaderP 持久存储，以便下次启动能对这些 ID 恢复 `IsViewed`
 
-The system SHALL, when a `MoeItem` is added to a `MoeItems` collection for a site fetch, set `IsViewed` from the site’s `ViewedID` and, for IDs not yet persisted as viewed, SHALL record them via `AddViewingId` for later serialization. This marking SHALL occur before `LocalFilter()` and SHALL NOT remove items from the collection based on the global “mask viewed” setting.
+#### 场景：启动时加载
 
-#### Scenario: Previously viewed item
+- **当** 应用启动且某站点短名已存在已存储的已浏览数据  
+- **则** 内存中该站点的已浏览结构必须从存储加载，且不得丢失合法压缩区间
 
-- **WHEN** a fetched item’s ID is already in the stored viewed set for that site
-- **THEN** `IsViewed` on that `MoeItem` SHALL be true before `LocalFilter()` runs
+### 需求：条目进入结果集合时打标
 
-#### Scenario: First-time item on a fetch
+当某 `MoeItem` 被加入某次站点抓取的 `MoeItems` 集合时，系统必须根据站点 `ViewedID` 设置 `IsViewed`；对尚未持久化为「已读」的 ID，必须通过 `AddViewingId` 记录，以便后续序列化。该打标必须发生在 `LocalFilter()` **之前**，且**不得**因全局「隐藏已读」设置而从集合中移除条目。
 
-- **WHEN** a fetched item’s ID is not yet in the stored viewed set
-- **THEN** the system SHALL add that ID through the same session mechanism as the reference `AddViewingId` path so it can be merged into persisted ranges on save
+#### 场景：此前已读的条目
 
-### Requirement: Global “mask viewed” search setting (display only)
+- **当** 抓取条目的 ID 已在该站点已存集合中  
+- **则** 在 `LocalFilter()` 运行前，该 `MoeItem` 的 `IsViewed` 必须为 true
 
-The system SHALL provide a global boolean setting in **Settings → Search** (same settings group as other search options), default **off**, bound in the settings UI. When **on**, the system SHALL hide or omit viewed items **only** when populating the **current** thumbnail strip (`ImageItemsWrapPanel` or equivalent) for the page being shown. When **off**, all non–locally-filtered items for that page SHALL be eligible for display regardless of viewed state. The mask SHALL NOT be implemented by marking viewed items as `IsLocalFilter` solely for masking, because that would change `FilterCount` and the `SearchNextVisualPage` loop that uses `Count - FilterCount`.
+#### 场景：首次出现的条目
 
-#### Scenario: Mask does not use LocalFilter for viewed-only reason
+- **当** 抓取条目的 ID 尚不在已存集合中  
+- **则** 系统必须通过参考实现中与 `AddViewingId` 相同的路径加入该 ID，以便保存时能合并进持久区间
 
-- **WHEN** the global mask setting is on and an item is viewed and passes all existing `LocalFilter` rules (resolution, rating, etc.)
-- **THEN** `IsLocalFilter` on that item SHALL still be false (the mask hides it only when creating thumbnail controls, not via `LocalFilter`)
+### 需求：全局「隐藏已读」搜索设置（仅展示）
 
-#### Scenario: Default does not hide viewed items
+系统必须在 **设置 → 搜索**（与其它搜索选项同组）提供全局布尔项，默认**关闭**，并与设置界面绑定。为**开**时，系统**仅**在为**当前**缩略图条（`ImageItemsWrapPanel` 或等价控件）填充**当前展示页**时隐藏或省略已读项。为**关**时，该页上所有未因其它规则被本地过滤的条目均可展示，与是否已读无关。该「隐藏」**不得**通过**仅**将已读项标为 `IsLocalFilter` 来实现，否则会改变 `FilterCount` 以及依赖 `Count - FilterCount` 的 `SearchNextVisualPage` 循环。
 
-- **WHEN** the global mask setting is at its default (off)
-- **THEN** viewed items SHALL still appear in the current page thumbnail area if not removed by other filters (e.g. `LocalFilter`)
+#### 场景：隐藏已读不走 LocalFilter
 
-#### Scenario: Mask on does not change fetch or paging
+- **当** 全局隐藏已读为开，且某条目已读且通过所有既有 `LocalFilter` 规则（分辨率、分级等）  
+- **则** 该条目的 `IsLocalFilter` 仍须为 false（隐藏仅在创建缩略图控件时生效，而非经 `LocalFilter`）
 
-- **WHEN** the user turns the global mask setting on and loads or flips pages
-- **THEN** `SearchSession` and site paging (`TryGetRealPage`, `HasNextPage`, page indices) SHALL behave the same as with the setting off; only the final step that adds thumbnail controls for the **currently displayed** page MAY omit or hide viewed items
+#### 场景：默认不隐藏已读
 
-### Requirement: Viewed state border on thumbnails
+- **当** 全局隐藏已读保持默认（关）  
+- **则** 若未被其它过滤器（如 `LocalFilter`）剔除，已读条目仍须出现在当前页缩略图区域
 
-The system SHALL render a distinct border color on the thumbnail chrome for viewed items versus non-viewed items. Non-viewed items SHALL keep the existing default border appearance. Viewed items SHALL use a rose/mauve border derived from the reference tint RGB (233, 147, 170), as an opaque brush (for example `#FFE993AA` or a documented contrast-adjusted sibling), defined as a reusable WPF resource key.
+#### 场景：开启隐藏不改变抓取与分页
 
-#### Scenario: Viewed thumbnail
+- **当** 用户打开全局隐藏已读并加载或翻页  
+- **则** `SearchSession` 与站点分页（`TryGetRealPage`、`HasNextPage`、页码等）必须与关闭时行为一致；**仅**在为**当前展示页**添加缩略图控件的最终步骤可省略或隐藏已读项
 
-- **WHEN** a `MoeItem` has `IsViewed` true and its thumbnail control is displayed
-- **THEN** the outer thumbnail border brush SHALL use the viewed-image border resource, not the default non-viewed border brush
+### 需求：缩略图上的已读态边框
 
-#### Scenario: Not viewed thumbnail
+系统必须在缩略图容器上对「已读」与「未读」使用可区分的边框色。未读项保持既有默认边框外观。已读项必须使用由参考色调 RGB (233, 147, 170) 衍生的玫/藕色不透明画刷（例如 `#FFE993AA` 或经对比度调整且已文档化的兄弟色），并定义为可复用的 WPF 资源键。
 
-- **WHEN** a `MoeItem` has `IsViewed` false
-- **THEN** the thumbnail border SHALL match the existing default styling for non-viewed items
+#### 场景：已读缩略图
 
-#### Scenario: Selected and viewed both visible
+- **当** 某 `MoeItem` 的 `IsViewed` 为 true 且其缩略图控件已显示  
+- **则** 外层缩略图边框画刷必须使用「已读」资源，而非默认未读边框
 
-- **WHEN** the user checks the item (selection on) and the item is viewed
-- **THEN** the control SHALL show the existing selection chrome (e.g. blue highlight from the checkbox template) **in addition to** a visible viewed-state treatment (e.g. outer viewed-colored ring with inner/overlaid selection), so viewed is not lost when selected
+#### 场景：未读缩略图
 
-### Requirement: No conflicting reuse of existing accent colors
+- **当** 某 `MoeItem` 的 `IsViewed` 为 false  
+- **则** 缩略图边框必须与既有未读默认样式一致
 
-The viewed border resource SHALL NOT reuse the primary selection/highlight blue (`#FF00B9FF` family) so that viewed state remains visually distinct from selection and site-mode accents.
+#### 场景：选中且已读同时可见
 
-#### Scenario: Distinct from selection
+- **当** 用户勾选该项（选中开）且该项已读  
+- **则** 控件必须继续显示既有选中高亮（如复选框模板中的蓝色），**并**保留可见的已读处理（例如外层已读色环与内层/叠放选中态），避免选中时看不出已读
 
-- **WHEN** an item is both selected and viewed
-- **THEN** the UI SHALL keep viewed border and selection affordance distinguishable (e.g., thickness, layering, or corner treatment) as defined in design
+### 需求：不冲突复用既有强调色
 
-### Requirement: Status bar shows current search page totals and viewed count
+已读边框资源**不得**复用主选中/高亮蓝色系（`#FF00B9FF` 家族），以便已读态与选中态、站点模式强调色在视觉上可区分。
 
-The system SHALL append to the main window bottom status area used for the current search summary (the same `TextBlock` as `GetCurrentSearchStateText()` in `MainWindow.xaml`, `SiteTextBlock`) a short phrase whose meaning is **only the currently displayed search page** (`SearchedVisualPage` that is active in the explorer paging UI), **not** the whole `SearchSession` aggregate. **N** SHALL be the count of `MoeItem` instances enumerated as direct elements of every `SearchedPage` in **that** visual page’s `RealPages` only (`foreach (var rp in visualPage.RealPages) foreach (item in rp)`). **M** SHALL be how many of those items have `IsViewed` true. The wording SHALL make the “this page” scope explicit (e.g. Chinese “本页”) so it is not confused with other UI or logs that already show a session-wide or fetch-wide total count. The system SHALL NOT double-count nested `ChildrenItems` for **N** and **M**. When there is no current visual page or counts are zero, the appended phrase MAY be omitted or show zeros as defined in design.
+#### 场景：与选中态区分
 
-#### Scenario: Switch paging tab updates counts
+- **当** 某条目既选中又已读  
+- **则** UI 必须保持已读边框与选中态提示可分辨（如线宽、层级或角部处理等，以设计为准）
 
-- **WHEN** the user switches the paging control to another `SearchedVisualPage` and that page is shown in the explorer
-- **THEN** **N** and **M** in the status line SHALL be recomputed from that page’s `RealPages` only
+### 需求：状态栏展示当前搜索页总数与已读数
 
-#### Scenario: Same session, different page different numbers
+系统必须在主窗口底部用于当前搜索摘要的区域（与 `MainWindow.xaml` 中 `GetCurrentSearchStateText()` 所用同一 `TextBlock`、`SiteTextBlock`）追加一小段文字，其语义**仅指当前展示的搜索页**（浏览器分页 UI 中激活的 `SearchedVisualPage`），**不是**整个 `SearchSession` 的聚合。**N** 必须为：仅对该可视页的每个 `SearchedPage` 中条目做 `foreach (var rp in visualPage.RealPages) foreach (item in rp)` 直接枚举到的 `MoeItem` 数量。**M** 必须为其中 `IsViewed` 为 true 的条数。措辞必须明确「本页」范围，避免与会话级或抓取级其它统计混淆。对 **N** 与 **M**，系统**不得**将嵌套 `ChildrenItems` 重复计数。若无当前可视页或计数为零，追加短语可省略或按设计显示为零。
 
-- **WHEN** two `SearchedVisualPage` instances in the same `SearchSession` have different numbers of items or different viewed counts
-- **THEN** the appended **N** and **M** SHALL change when the user switches between those pages to match the active page only
+#### 场景：切换分页标签更新计数
 
-#### Scenario: New search resets page stats
+- **当** 用户将分页控件切换到另一 `SearchedVisualPage` 且该页在浏览器中展示  
+- **则** 状态行中的 **N** 与 **M** 必须**仅**根据该页 `RealPages` 重算
 
-- **WHEN** the user starts a new search session that replaces `Settings.CurrentSession`
-- **THEN** the appended phrase SHALL reflect the new session’s current visual page (or be hidden until a page exists), not previous sessions’ pages
+#### 场景：同一会话不同页数字不同
 
-### Requirement: Children items follow parent for viewed display
+- **当** 同一会话下两个 `SearchedVisualPage` 的条目数或已读数不同  
+- **则** 用户切换页时，追加的 **N** 与 **M** 必须随激活页变化，且只反映当前激活页
 
-The system SHALL NOT maintain separate viewed-ID tracking or separate viewed-border rules for `ChildrenItems`. Child thumbnails SHALL derive viewed presentation from their parent `MoeItem` (or equivalent parent binding).
+#### 场景：新搜索重置页统计
 
-#### Scenario: Child thumbnail
+- **当** 用户开始新搜索并替换 `Settings.CurrentSession`  
+- **则** 追加短语必须反映新会话的当前可视页（或尚无页时隐藏），不得沿用旧会话页面数据
 
-- **WHEN** a child `MoeItem` is shown under a parent and the parent is viewed
-- **THEN** the child thumbnail viewed styling SHALL match the parent’s viewed state without writing a separate ID for the child into `ViewedID`
+### 需求：子图跟随父项的已读展示
 
+系统不得为 `ChildrenItems` 单独维护已浏览 ID 跟踪或单独的已读边框规则。子缩略图的已读呈现必须从父 `MoeItem`（或等价的父级绑定）推导。
+
+#### 场景：子缩略图
+
+- **当** 在父项下展示子 `MoeItem` 且父项已读  
+- **则** 子缩略图的已读样式必须与父项已读态一致，且不得为子项单独写入 `ViewedID` 的独立 ID

@@ -1,66 +1,66 @@
-# browse-download-ux Specification
+# browse-download-ux 规格
 
-## Purpose
+## 目的
 
-缩略图浏览与「加入下载」相关的基础体验：失败缩略图一键重试、与全选同级的快捷键约定、以及自动下载格式下优先选择原图 URL。本规格由变更 `optimize-browse-download` 归档后同步入主 `openspec/specs/`。
+缩略图浏览与「加入下载」相关的基础体验：失败缩略图一键重试、与全选同级的快捷键约定，以及自动下载格式下优先选择原图 URL。本规格由变更 `optimize-browse-download` 归档后同步入主库 `openspec/specs/`。
 
-## Requirements
+## 需求
 
-### Requirement: Retry failed thumbnails (context menu, concise label, Ctrl+R)
+### 需求：失败缩略图重试（右键菜单、简短文案、Ctrl+R）
 
-The system SHALL provide a single **retry-failed-thumbnails** behavior invoked from (a) a context-menu command on the thumbnail grid background menu and (b) **Ctrl+R** in the same thumbnail browsing scope as **Ctrl+A** / **Ctrl+D**. The context-menu command SHALL sit at the **same structural level** as the existing “select all” entry (same `SpPanel` / sibling row as “全选”, not nested under per-item menus). The visible menu label SHALL be **concise** (for Chinese UI, prefer roughly **4 characters** such as “重试失败”; avoid long phrases like “重试失败缩略图” unless a longer string is required for a11y in a specific locale).
+系统必须提供统一的 **失败缩略图重试** 行为，入口为：（a）缩略图网格背景右键菜单中的命令；（b）与 **Ctrl+A** / **Ctrl+D** 相同浏览范围内的 **Ctrl+R**。菜单项必须与现有「全选」处于**同一结构层级**（同一 `SpPanel`、与「全选」同一行/兄弟行，不得放在单张缩略图子菜单下）。界面文案必须**简短**（中文界面宜约 **4 字**，如「重试失败」；除非无障碍要求，避免「重试失败缩略图」等冗长句）。
 
-The bulk-retry orchestration SHALL enumerate **only** thumbnails on the **currently displayed** page that are in a **failed, error, or empty/placeholder** load state. For those items it MAY call the existing load path (including `TryLoadThumbnailStreamAsync` where appropriate). The system SHALL **NOT** invoke that load path for items whose thumbnail has **already loaded successfully** (decoded image already shown); calling `TryLoadThumbnailStreamAsync` always performs a network fetch, so skipping successful items avoids redundant re-downloads.
+批量重试必须**仅**枚举**当前可视页**上处于**失败、错误或空/占位**加载态的缩略图；可调用既有加载路径（含适当的 `TryLoadThumbnailStreamAsync`）。对**已成功显示**缩略图的项，系统**不得**再调用该加载路径（`TryLoadThumbnailStreamAsync` 会走网络，跳过已成功项可避免重复下载）。
 
-#### Scenario: Command appears with select all
+#### 场景：与全选同级出现
 
-- **WHEN** the user opens the right-click context menu on the thumbnail page area where “全选” is shown
-- **THEN** a retry command SHALL appear as a sibling to “全选” in that menu strip with a concise label
+- **当** 用户在出现「全选」的缩略图区域打开右键菜单  
+- **则** 重试命令必须与「全选」处于同一条菜单带中，且为兄弟项，文案简短
 
-#### Scenario: Ctrl+R matches menu retry
+#### 场景：Ctrl+R 与菜单一致
 
-- **WHEN** the user presses **Ctrl+R** while focus is in the thumbnail browsing scope
-- **THEN** the system SHALL run the **same** retry-failed-thumbnails logic as when the user chooses the context-menu retry command (same scope: current visible page, failed items only)
+- **当** 焦点在缩略图浏览范围内且用户按下 **Ctrl+R**  
+- **则** 必须与选择菜单重试时执行**同一套**逻辑（范围：当前可视页，仅失败项）
 
-#### Scenario: Retry reloads failures on current page
+#### 场景：仅重拉当前页失败项
 
-- **WHEN** the user activates retry (menu or Ctrl+R) and one or more visible thumbnails are in a failed or error placeholder state from a prior load attempt
-- **THEN** the system SHALL re-issue thumbnail fetch for those items on the **currently displayed** thumbnail page without requiring the user to change search or page
+- **当** 用户通过菜单或 Ctrl+R 触发重试，且当前页有缩略图处于先前尝试后的失败或错误占位态  
+- **则** 系统必须对这些项重新发起缩略图拉取，且**无需**用户改搜索条件或翻页
 
-#### Scenario: Successful thumbnails are not re-fetched
+#### 场景：已成功缩略图不再拉取
 
-- **WHEN** the user activates retry (menu or Ctrl+R) and a visible thumbnail has **already** completed a successful load and displays the image
-- **THEN** the system SHALL NOT call `TryLoadThumbnailStreamAsync` (or equivalent full re-fetch) for that item as part of this bulk-retry action
+- **当** 用户触发重试且某可见缩略图**已经**成功解码并显示图像  
+- **则** 本次批量重试中**不得**对该项调用 `TryLoadThumbnailStreamAsync`（或等效的全量重拉）
 
-#### Scenario: No selection required
+#### 场景：不依赖勾选
 
-- **WHEN** the user activates retry (menu or Ctrl+R)
-- **THEN** the operation SHALL NOT depend on checkbox selection; it SHALL target failed loads by item/control state, not by `SelectedImageControls`
+- **当** 用户触发重试（菜单或 Ctrl+R）  
+- **则** 操作**不得**依赖复选框选中态；必须按项/控件状态识别失败加载，而非依赖 `SelectedImageControls`
 
-### Requirement: Ctrl+D downloads the current selection
+### 需求：Ctrl+D 下载当前选中项
 
-The system SHALL register **Ctrl+D** in the thumbnail browsing surface (the same interaction scope where **Ctrl+A** already triggers “select all”) so that pressing Ctrl+D enqueues a download for every **currently selected** thumbnail whose `DownloadUrlInfo` is valid, using the **same** enqueue path as the existing “add selected to downloader” action (including opening/showing the downloader panel when applicable).
+系统必须在缩略图浏览表面（与 **Ctrl+A** 触发「全选」的同一交互范围）注册 **Ctrl+D**：按下后，对每个**当前已选中**且 `DownloadUrlInfo` 有效的缩略图，走与现有「将选中项加入下载器」**相同**的入队路径（含必要时打开/显示下载面板）。
 
-#### Scenario: Ctrl+D with selection
+#### 场景：有选中时 Ctrl+D
 
-- **WHEN** the user has one or more thumbnails selected in the explorer and presses Ctrl+D while focus is in the thumbnail browsing scope
-- **THEN** each selected item with a usable download URL SHALL be added to the download queue exactly as the existing mouse-driven download-selected flow does
+- **当** 浏览区已选中一张或多张缩略图，且焦点在缩略图浏览范围内时用户按下 Ctrl+D  
+- **则** 每个具备可用下载地址的选中项必须加入下载队列，行为与现有鼠标「下载已选」一致
 
-#### Scenario: Ctrl+D with no selection
+#### 场景：无选中时 Ctrl+D
 
-- **WHEN** no thumbnails are selected and the user presses Ctrl+D in the thumbnail browsing scope
-- **THEN** the system SHALL NOT enqueue downloads (no-op or same behavior as existing download-selected with zero selection)
+- **当** 未选中任何缩略图且用户在缩略图浏览范围内按下 Ctrl+D  
+- **则** 不得入队下载（无操作或与零选中时「下载已选」行为一致）
 
-### Requirement: Download URL prefers original image over preview or sample
+### 需求：下载 URL 默认优先原图
 
-When a `MoeItem` has multiple candidate URLs for the file that will be written by the downloader (e.g. sample, web-sized, and original), the system SHALL set or resolve `DownloadUrlInfo` so that the **original / highest-fidelity** URL is chosen **by default** before download starts, unless a higher-priority user or site-specific setting already fixes the format (document any exception in design). Sites that only expose a single URL remain unchanged.
+当某 `MoeItem` 对即将写入磁盘的文件存在多条候选 URL（如样张、网页尺寸、原图等）时，系统必须在下载开始前将 `DownloadUrlInfo` 设为或解析为**默认选择原图 / 最高保真** URL，除非用户或站点级设置已固定更高优先的格式（例外在设计中说明）。仅提供单 URL 的站点行为不变。
 
-#### Scenario: Multi-candidate item uses original
+#### 场景：多候选时用原图
 
-- **WHEN** site parsing populates more than one resolution or format link for the same logical post and the user has not chosen a conflicting explicit format override
-- **THEN** `DownloadUrlInfo.Url` (or the resolved URL after `ResolveUrlFunc` if used) SHALL refer to the original-quality asset rather than a thumbnail or inline preview URL
+- **当** 站点解析为同一作品写入了多条分辨率或格式链接，且用户未选择与之冲突的显式格式覆盖  
+- **则** `DownloadUrlInfo.Url`（或经 `ResolveUrlFunc` 解析后的 URL）必须指向原画质资源，而非缩略图或内嵌预览 URL
 
-#### Scenario: Single URL unchanged
+#### 场景：单 URL 无回归
 
-- **WHEN** the site provides only one download URL
-- **THEN** behavior SHALL match the previous single-URL download path with no user-visible regression
+- **当** 站点仅提供一条下载 URL  
+- **则** 行为必须与原先单 URL 下载路径一致，对用户无可见退化
