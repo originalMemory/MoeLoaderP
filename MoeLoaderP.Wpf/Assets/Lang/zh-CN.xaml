@@ -49,4 +49,8 @@
     <String x:Key="TextDownloaderContextStartAll">全部开始</String>
     <String x:Key="TextDownloaderContextStopAll">全部停止</String>
     <String x:Key="TextDownloaderContextDeleteAllComplete">删除已完成任务</String>
+
+    <String x:Key="TextContextMenuRetryFailed">重试失败</String>
+    <String x:Key="TextContextMenuDownloadSelected">下载</String>
+    <String x:Key="TextDownloaderContextExportUnfinished">导出未成功任务</String>
 </m:ResourceDictionary>

@@ -147,7 +147,7 @@ public class DownloadTypes : ObservableCollection<DownloadType>
     {
         var item = new DownloadType
         {
-            Name = "自动（优先大图）",
+            Name = "自动（优先原图）",
             Type = DownloadTypeEnum.Auto
         };
         Insert(0, item);

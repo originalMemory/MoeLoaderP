@@ -160,7 +160,7 @@ public class MoeItem : BindingObject
             if (type == null) return null;
             if (type.Type != DownloadTypeEnum.Auto)
                 return Urls.FirstOrDefault(urlInfo => urlInfo.DownloadType == type.Type);
-            // todo
+            // Auto：在已注册的 Urls 中取 DownloadType 枚举值最大的一项（Origin=4 > Large > …），即优先原图。
             var i = 0;
             UrlInfo info = null;
             foreach (var url in Urls)

@@ -23,16 +23,38 @@ public partial class MoeContextMenuControl
         InitializeComponent();
     }
     
-    public void InitContextMenu(WrapPanel imagesWrapPanel, Popup contextMenuPopup, ObservableCollection<MoeItemControl> selectedImageControls)
+    private Action _retryFailedThumbnailsAction;
+    private Action _enqueueSelectedDownloadsAction;
+
+    public void InitContextMenu(WrapPanel imagesWrapPanel, Popup contextMenuPopup,
+        ObservableCollection<MoeItemControl> selectedImageControls, Action retryFailedThumbnails,
+        Action enqueueSelectedDownloads)
     {
         ImageItemsWrapPanel = imagesWrapPanel;
         ContextMenuPopup = contextMenuPopup;
         SelectedImageControls = selectedImageControls;
+        _retryFailedThumbnailsAction = retryFailedThumbnails;
+        _enqueueSelectedDownloadsAction = enqueueSelectedDownloads;
 
         ContextSelectAllButton.Click += ContextSelectAllButtonOnClick;
         ContextSelectNoneButton.Click += ContextSelectNoneButtonOnClick;
         ContextSelectReverseButton.Click += ContextSelectReverseButtonOnClick;
-        
+        RetryFailedThumbnailsButton.Click -= RetryFailedThumbnailsButtonOnClick;
+        RetryFailedThumbnailsButton.Click += RetryFailedThumbnailsButtonOnClick;
+        ContextDownloadSelectedButton.Click -= ContextDownloadSelectedButtonOnClick;
+        ContextDownloadSelectedButton.Click += ContextDownloadSelectedButtonOnClick;
+    }
+
+    private void RetryFailedThumbnailsButtonOnClick(object sender, RoutedEventArgs e)
+    {
+        ContextMenuPopup.IsOpen = false;
+        _retryFailedThumbnailsAction?.Invoke();
+    }
+
+    private void ContextDownloadSelectedButtonOnClick(object sender, RoutedEventArgs e)
+    {
+        ContextMenuPopup.IsOpen = false;
+        _enqueueSelectedDownloadsAction?.Invoke();
     }
     private void ContextSelectReverseButtonOnClick(object sender, RoutedEventArgs e)
     {

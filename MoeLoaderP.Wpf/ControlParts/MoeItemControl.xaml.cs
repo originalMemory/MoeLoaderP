@@ -36,6 +36,17 @@ public partial class MoeItemControl : IDisposable
         }
     }
 
+    /// <summary>
+    /// 页级「重试失败」：仅对缩略图尚未成功显示、且当前未在加载中的项调用 <see cref="TryLoad"/>，避免对已成功的缩略图再次走网络拉流。
+    /// </summary>
+    public bool ShouldRetryThumbnailLoad()
+    {
+        if (LoadingState == LoadingStateEnum.Loading) return false;
+        if (PreviewImage.Source != null) return false;
+        var url = MoeItem?.ThumbnailUrlInfo?.Url;
+        return !url.IsEmpty();
+    }
+
     public MoeItem MoeItem { get; set; }
 
     public Settings Settings { get; set; }

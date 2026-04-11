@@ -46,7 +46,8 @@ public partial class MoeExplorerControl
         DownloadSelectedImagesButton.Click += DownloadSelectedImagesButtonOnClick;
         ImageItemDownloadButtonClicked += OnImageItemDownloadButtonClicked;
         
-        MoeContextMenu.InitContextMenu(ImageItemsWrapPanel,ContextMenuPopup,SelectedImageControls); 
+        MoeContextMenu.InitContextMenu(ImageItemsWrapPanel, ContextMenuPopup, SelectedImageControls,
+            RetryFailedThumbnailsOnCurrentPage, EnqueueSelectedDownloads);
         MoeContextMenu.SearchByAuthorIdAction += SearchByAuthorId;
         InitPaging();
 
@@ -161,6 +162,14 @@ public partial class MoeExplorerControl
 
     private void DownloadSelectedImagesButtonOnClick(object sender, RoutedEventArgs e)
     {
+        EnqueueSelectedDownloads();
+    }
+
+    /// <summary>
+    /// 将当前勾选缩略图加入下载队列（与下载按钮相同逻辑）。
+    /// </summary>
+    public void EnqueueSelectedDownloads()
+    {
         if (Application.Current.MainWindow is not MainWindow mw) return;
         var count = 0;
         foreach (var ctrl in SelectedImageControls)
@@ -171,7 +180,7 @@ public partial class MoeExplorerControl
             count++;
         }
         if (mw.DownloaderMenuCheckBox.IsChecked == false && count > 0) mw.DownloaderMenuCheckBox.IsChecked = true;
-            
+
         foreach (MoeItemControl ct in ImageItemsWrapPanel.Children)
         {
             ct.ImageCheckBox.IsChecked = false;
@@ -181,6 +190,18 @@ public partial class MoeExplorerControl
         if (lb.Items.Count != 0)
         {
             lb.ScrollIntoView(lb.Items[^1]);
+        }
+    }
+
+    /// <summary>
+    /// 当前可视页：仅对缩略图仍未成功显示的项重新 <see cref="MoeItemControl.TryLoad"/>。
+    /// </summary>
+    public void RetryFailedThumbnailsOnCurrentPage()
+    {
+        foreach (MoeItemControl ctrl in ImageItemsWrapPanel.Children)
+        {
+            if (!ctrl.ShouldRetryThumbnailLoad()) continue;
+            _ = ctrl.TryLoad();
         }
     }
 
@@ -212,9 +233,24 @@ public partial class MoeExplorerControl
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.A && Keyboard.IsKeyDown(Key.LeftCtrl))
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control) return;
+        if (e.Key == Key.A)
         {
             MoeContextMenu.ContextSelectAllButtonOnClick(null, null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.D)
+        {
+            if (SelectedImageControls.Count > 0)
+            {
+                EnqueueSelectedDownloads();
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.R)
+        {
+            RetryFailedThumbnailsOnCurrentPage();
+            e.Handled = true;
         }
     }
     private void ImageItemsScrollViewerOnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
