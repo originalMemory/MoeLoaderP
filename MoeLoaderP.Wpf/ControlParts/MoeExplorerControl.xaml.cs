@@ -28,6 +28,7 @@ public partial class MoeExplorerControl
 
     public MoeItemControl MouseOnImageControl { get; set; }
     public ObservableCollection<MoeItemControl> SelectedImageControls { get; set; } = new();
+    private int LastClickedImageIndex { get; set; } = -1;
     public Storyboard SearchStartSb => this.Sb("SearchStartSb");
     public Storyboard SearchingSb => this.Sb("SearchingSb");
     public Storyboard ShowSb => this.Sb("ShowSb");
@@ -231,6 +232,28 @@ public partial class MoeExplorerControl
         ImageCountTextBlock.Text = $"已选择{SelectedImageControls.Count}张（组）图片";
     }
 
+    private void ImageCheckBoxOnClick(MoeItemControl ctrl)
+    {
+        var index = ImageItemsWrapPanel.Children.IndexOf(ctrl);
+        if (index < 0) return;
+
+        if (ctrl.ImageCheckBox.IsChecked == true
+            && (Keyboard.Modifiers & ModifierKeys.Shift) != 0
+            && LastClickedImageIndex >= 0
+            && LastClickedImageIndex < ImageItemsWrapPanel.Children.Count)
+        {
+            var start = Math.Min(LastClickedImageIndex, index);
+            var end = Math.Max(LastClickedImageIndex, index);
+            for (var i = start; i <= end; i++)
+                ((MoeItemControl) ImageItemsWrapPanel.Children[i]).ImageCheckBox.IsChecked = true;
+
+            Debug.Assert(Enumerable.Range(start, end - start + 1).All(i
+                => ((MoeItemControl) ImageItemsWrapPanel.Children[i]).ImageCheckBox.IsChecked == true));
+        }
+
+        LastClickedImageIndex = index;
+    }
+
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control) return;
@@ -280,6 +303,7 @@ public partial class MoeExplorerControl
         ImageItemsWrapPanel.Children.Clear();
         ImageLoadingPool.Clear();
         SelectedImageControls.Clear();
+        LastClickedImageIndex = -1;
         ImageItemsScrollViewer.ScrollToTop();
         GC.Collect();
     }
@@ -331,6 +355,7 @@ public partial class MoeExplorerControl
                     ctrl.MouseEnter += delegate { MouseOnImageControl = ctrl; };
                     ctrl.ImageCheckBox.Checked += delegate { SelectedImageControls.Add(ctrl); };
                     ctrl.ImageCheckBox.Unchecked += delegate { SelectedImageControls.Remove(ctrl); };
+                    ctrl.ImageCheckBox.Click += delegate { ImageCheckBoxOnClick(ctrl); };
                     ctrl.MouseRightButtonUp += ItemCtrlOnMouseRightButtonUp;
                     ImageItemsWrapPanel.Children.Add(ctrl);
                     ctrl.Show();

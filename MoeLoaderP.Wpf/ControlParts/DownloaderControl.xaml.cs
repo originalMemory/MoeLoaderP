@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Shell;
 using System.Windows.Threading;
 using MoeLoaderP.Core;
 
@@ -30,6 +31,7 @@ public partial class DownloaderControl
         StopButton.Click += StopButtonOnClick;
         SelectAllButton.Click += SelectAllButtonOnClick;
         RetryButton.Click += RetryButtonOnClick;
+        ClearSuccessRetryFailedButton.Click += ClearSuccessRetryFailedButtonOnClick;
         ExportUnfinishedButton.Click += ExportUnfinishedButtonOnClick;
         DownloadItemsListBox.PreviewDragOver += DownloadItemsListBoxOnPreviewDragOver;
         DownloadItemsListBox.Drop += DownloadItemsListBoxOnDrop;
@@ -43,6 +45,41 @@ public partial class DownloaderControl
     private void TimerOnTick(object sender, EventArgs e)
     {
         Downloader.TimerOnTick(sender, e);
+        UpdateTaskbarProgress();
+    }
+
+    private void UpdateTaskbarProgress()
+    {
+        var window = Window.GetWindow(this);
+        if (window == null) return;
+
+        var taskbar = window.TaskbarItemInfo ??= new TaskbarItemInfo();
+        var items = Downloader.DownloadItems;
+        if (items.Count == 0)
+        {
+            taskbar.ProgressValue = 0;
+            taskbar.ProgressState = TaskbarItemProgressState.None;
+        }
+        else if (Downloader.IsDownloading)
+        {
+            taskbar.ProgressValue = items.Average(item => Math.Clamp(item.Progress, 0, 100)) / 100d;
+            taskbar.ProgressState = TaskbarItemProgressState.Normal;
+        }
+        else if (items.Any(item => item.DlStatus == DownloadStatus.Failed))
+        {
+            taskbar.ProgressValue = 1;
+            taskbar.ProgressState = TaskbarItemProgressState.Error;
+        }
+        else if (items.All(item => item.DlStatus is DownloadStatus.Success or DownloadStatus.Skip))
+        {
+            taskbar.ProgressValue = 1;
+            taskbar.ProgressState = TaskbarItemProgressState.Normal;
+        }
+        else
+        {
+            taskbar.ProgressValue = 0;
+            taskbar.ProgressState = TaskbarItemProgressState.None;
+        }
     }
         
     public MoeItems CastSelectToDownloadItems()
@@ -76,6 +113,13 @@ public partial class DownloaderControl
     private void RetryButtonOnClick(object sender, RoutedEventArgs e)
     {
         MoeDownloader.Retry(CastSelectToDownloadItems());
+        ContextMenuPopup.IsOpen = false;
+    }
+
+    private void ClearSuccessRetryFailedButtonOnClick(object sender, RoutedEventArgs e)
+    {
+        Downloader.DeleteAllSuccessAndRetryFailed();
+        UpdateTaskbarProgress();
         ContextMenuPopup.IsOpen = false;
     }
 

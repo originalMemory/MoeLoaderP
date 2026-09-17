@@ -124,6 +124,8 @@ public class SearchSession : BindingObject
             var ex = rp.SearchException;
             if (ex != null)
             {
+                vp.IsSearchComplete = true;
+                Debug.Assert(vp.IsSearchComplete);
                 Ex.ShowMessage($"搜索中断:{ex.Message}", rp.SearchException.StackTrace);
                 break;
             }

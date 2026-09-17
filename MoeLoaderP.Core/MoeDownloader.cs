@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace MoeLoaderP.Core;
 
@@ -77,18 +79,20 @@ public class MoeDownloader(Settings set)
         }
     }
 
-    public static void Retry(MoeItems items)
+    public void DeleteAllSuccessAndRetryFailed()
     {
-        for (var i = 0; i < items.Count; i++)
-        {
-            var item = items[i];
-            if (item.DlStatus == DownloadStatus.Downloading)
-            {
-                item.CurrentDownloadTaskCts?.Cancel();
-                item.DlStatus = DownloadStatus.WaitForDownload;
-            }
+        DeleteAllSuccess();
+        Retry(DownloadItems.Where(item => item.DlStatus == DownloadStatus.Failed));
+    }
 
-            if (item.DlStatus == DownloadStatus.Failed) item.DlStatus = DownloadStatus.WaitForDownload;
+    public static void Retry(IEnumerable<MoeItem> items)
+    {
+        foreach (var item in items)
+        {
+            if (item.DlStatus != DownloadStatus.Failed) continue;
+            item.CurrentDownloadTaskCts = new CancellationTokenSource();
+            item.Progress = 0;
+            item.DlStatus = DownloadStatus.WaitForDownload;
         }
     }
 

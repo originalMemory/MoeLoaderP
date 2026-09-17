@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -480,6 +481,7 @@ public class MoeItem : BindingObject
         {
             DlStatus = DownloadStatus.Downloading;
             var i = 0;
+            var hasFailed = false;
             while (true)
             {
                 if (i >= ChildrenItemsCount ||
@@ -503,10 +505,13 @@ public class MoeItem : BindingObject
                     catch (Exception e)
                     {
                         Ex.Log(e);
-                        DlStatus = DownloadStatus.Failed;
+                        subItem.DlStatus = DownloadStatus.Failed;
+                        hasFailed = true;
                         i++;
                         continue;
                     }
+
+                    if (subItem.DlStatus == DownloadStatus.Failed) hasFailed = true;
 
                     // 解析下一个
                     if (subItem.IsResolveAndDownloadNextItem)
@@ -523,7 +528,7 @@ public class MoeItem : BindingObject
                         }
                         catch (Exception e)
                         {
-                            DlStatus = DownloadStatus.Failed;
+                            hasFailed = true;
                             Ex.Log(e);
                             break;
                         }
@@ -532,21 +537,28 @@ public class MoeItem : BindingObject
                 i++;
             }
 
-            var count = ChildrenItems.Count;
-            if (DlStatus == DownloadStatus.Cancel)
+            var successCount = ChildrenItems.Count(item
+                => item.DlStatus is DownloadStatus.Success or DownloadStatus.Skip);
+            if (token.IsCancellationRequested)
             {
-                StatusText = $"{count - 1}张成功，失败{ChildrenItemsCount - count}张";
+                DlStatus = DownloadStatus.Cancel;
+                StatusText = $"{successCount}张成功，失败{ChildrenItemsCount - successCount}张";
             }
-            else if (DlStatus == DownloadStatus.Failed)
+            else if (hasFailed)
             {
-                StatusText = $"{count - 1}张成功，失败{ChildrenItemsCount - count}张";
+                DlStatus = DownloadStatus.Failed;
+                Progress = 100d;
+                StatusText = $"{successCount}张成功，失败{ChildrenItemsCount - successCount}张";
             }
             else
             {
                 DlStatus = DownloadStatus.Success;
                 Progress = 100d;
-                StatusText = $"{count} 张下载完成";
+                StatusText = $"{ChildrenItems.Count} 张下载完成";
             }
+
+            Debug.Assert(DlStatus != DownloadStatus.Success
+                         || ChildrenItems.All(item => item.DlStatus != DownloadStatus.Failed));
         }
         else // 为子项目
         {
@@ -692,12 +704,16 @@ public class MoeItem : BindingObject
 
         LocalFileShortNameWithoutExt = SubIndex > 0 ? $"{sb} p{SubIndex}" : $"{sb}";
 
-        // 限制文件名长度
-        if (LocalFileShortNameWithoutExt.Length > 250)
+        // Samba 等文件系统按 UTF-8 字节限制单个文件名，含扩展名保留到 240 字节以避开边界问题。
+        var maxNameBytes = 240 - Encoding.UTF8.GetByteCount($".{FileType?.ToLower()}");
+        while (Encoding.UTF8.GetByteCount(LocalFileShortNameWithoutExt) > maxNameBytes)
         {
-            LocalFileShortNameWithoutExt = LocalFileShortNameWithoutExt[..250];
+            var end = LocalFileShortNameWithoutExt.Length - 1;
+            if (end > 0 && char.IsLowSurrogate(LocalFileShortNameWithoutExt[end])) end--;
+            LocalFileShortNameWithoutExt = LocalFileShortNameWithoutExt[..end];
         }
 
+        Debug.Assert(Encoding.UTF8.GetByteCount(LocalFileShortNameWithoutExt) <= maxNameBytes);
     }
 
     public string FormatText(string format, MoeItem img, bool isFolder = false)
